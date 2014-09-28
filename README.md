@@ -1,18 +1,25 @@
-Go DDP Client
+#Go DDP Client
 =============
 
-A golang ddp client for meteor
+###A golang ddp client for meteor
 
-Still under development, most features missing, for now:
+This work is in early development and is not ready for production.
 
-1. Can connect to remote host and get session id
-2. Ping-Pong works
+####To run
 
-Development checklist:
+1. Make sure your GOPATH includes ddp package
+2. go run main.go http://mysite.com 3000 websocket
+   
+####What works
 
-1. Subscribe/Unsubscribe, handling of client side collections
-2. Login/Logout
-3. Method call
+1. connects to remote host and gets session id
+2. ping-pong
+
+####Development checklist
+
+1. subscribe/unsubscribe, handling of client side collections
+2. login/logout
+3. method call
 
 Based on https://github.com/meteor/meteor/blob/devel/packages/ddp/DDP.md and 
 https://github.com/arunoda/meteor-ddp-analyzer
