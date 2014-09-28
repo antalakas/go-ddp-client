@@ -1,5 +1,4 @@
 #Go DDP Client
-=============
 
 ###A golang ddp client for meteor
 
