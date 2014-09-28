@@ -6,7 +6,7 @@ A golang ddp client for meteor
 Still under development, most features missing, for now:
 
 1. Can connect to remote host and get session id
-2. Can play "pong" when "ping"
+2. Ping-Pong works
 
 Development checklist:
 
