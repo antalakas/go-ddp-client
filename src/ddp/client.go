@@ -1,7 +1,7 @@
 package ddp
 
 import (
-  "log"
+  "time"
   "strings"
   "encoding/json"
   "code.google.com/p/go.net/websocket"
@@ -13,6 +13,8 @@ type DDPClient struct {
   path string
   connected bool
   sessionId string
+  pingSeconds time.Duration
+  pongWaitSeconds time.Duration
   ws *websocket.Conn
 }
 
@@ -27,6 +29,8 @@ func NewDDPClient(host string, port string, path string) *DDPClient {
   
   ddpClient.connected = false
   ddpClient.sessionId = ""
+  ddpClient.pingSeconds = time.Second * 25
+  ddpClient.pongWaitSeconds = time.Second * 5
   
   return &ddpClient
 }
@@ -73,8 +77,31 @@ func (ddpClient *DDPClient) sendSimpleMessage(msg string) {
   websocket.JSON.Send(ddpClient.ws, &m_SimpleMessage{msg})
 }
 
+func (ddpClient *DDPClient) pingJob(pongChan chan bool) {
+
+  pingTicker := time.NewTicker(ddpClient.pingSeconds).C
+  
+  for {
+    select {
+      case <- pingTicker:
+        ddpClient.sendSimpleMessage("ping")
+        pongChan := time.NewTimer(ddpClient.pongWaitSeconds).C
+        select {
+        case <- pongChan:
+            clientExit("I've waited enough for pong, exiting...")
+        case <- pongChan:
+            printMessage("received: " + "'pong'");
+        }
+    }
+  }
+  
+}
+
 func (ddpClient *DDPClient) ListenRead() {
-  log.Println("Listening read from server")
+  
+  pongChan := make(chan bool)
+  
+  printMessage("Listening read from server")
   for {
     var msg string
     websocket.Message.Receive(ddpClient.ws, &msg)
@@ -93,7 +120,7 @@ func (ddpClient *DDPClient) ListenRead() {
         if err := json.Unmarshal([]byte(msg), &data); err != nil {
           panic(err)
         }
-        log.Println("ServerId: " + data.ServerId)
+        printMessage("ServerId: " + data.ServerId)
       
       case strings.Contains(msg, "connected"):
         ddpClient.connected = true
@@ -101,44 +128,49 @@ func (ddpClient *DDPClient) ListenRead() {
         if err := json.Unmarshal([]byte(msg), &data); err != nil {
           panic(err)
         }
-        log.Println("Connected to ddp server with session: " + data.Session)
+        printMessage("Connected to ddp server with session: " + data.Session)
+        
+        go ddpClient.pingJob(pongChan)
       
       case strings.Contains(msg, "failed"):
         var data m_sFailed
         if err := json.Unmarshal([]byte(msg), &data); err != nil {
           panic(err)
         }
-        log.Println(data.Msg + ", server requires version: " + data.Version)
+        printMessage(data.Msg + ", server requires version: " + data.Version)
       // <- Establishing a DDP Connection
       
       // Heartbeat ->
       case strings.Contains(msg, "ping"):
-        log.Println("Received ping, sending pong")
+        printMessage("received: " + "'ping'" + ", sending 'pong'");
         ddpClient.sendSimpleMessage("pong")
+      case strings.Contains(msg, "pong"):
+        pongChan <- true
+        //printMessage("received: " + "'pong'");
       // <- Heartbeat
       
       // Managing Data ->
       case strings.Contains(msg, "nosub"):
-        log.Println("received: " + "'nosub'");
+        printMessage("received: " + "'nosub'");
       case strings.Contains(msg, "added"):
-        log.Println("received: " + "'added'");
+        printMessage("received: " + "'added'");
       case strings.Contains(msg, "changed"):
-        log.Println("received: " + "'changed'");
+        printMessage("received: " + "'changed'");
       case strings.Contains(msg, "removed"):
-        log.Println("received: " + "'removed'");
+        printMessage("received: " + "'removed'");
       case strings.Contains(msg, "ready"):
-        log.Println("received: " + "'ready'");
+        printMessage("received: " + "'ready'");
       case strings.Contains(msg, "addedBefore"):
-        log.Println("received: " + "'addedBefore'");
+        printMessage("received: " + "'addedBefore'");
       case strings.Contains(msg, "movedBefore"):
-        log.Println("received: " + "'movedBefore'");
+        printMessage("received: " + "'movedBefore'");
       // <- Managing Data
       
       // Remote Procedure Calls ->
       case strings.Contains(msg, "result"):
-        log.Println("received: " + "'result'");
+        printMessage("received: " + "'result'");
       case strings.Contains(msg, "updated"):
-        log.Println("received: " + "'updated'");
+        printMessage("received: " + "'updated'");
       // <- Remote Procedure Calls
 
     }

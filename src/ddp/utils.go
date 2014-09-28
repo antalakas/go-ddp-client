@@ -11,3 +11,12 @@ func checkError(message string, err error) {
     os.Exit(1)
   }
 }
+
+func printMessage(message string) {
+  fmt.Println(message)
+}
+
+func clientExit(message string) {
+  printMessage(message)
+  os.Exit(1)
+}
