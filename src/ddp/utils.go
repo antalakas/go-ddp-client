@@ -16,7 +16,7 @@ func printMessage(message string) {
   fmt.Println(message)
 }
 
-func clientExit(message string) {
+func ClientExit(message string) {
   printMessage(message)
   os.Exit(1)
 }

@@ -16,6 +16,8 @@ type DDPClient struct {
   pingSeconds time.Duration
   pongWaitSeconds time.Duration
   ws *websocket.Conn
+  sub_id int
+  readyChan chan bool
 }
 
 // Create new chat client.
@@ -31,6 +33,7 @@ func NewDDPClient(host string, port string, path string) *DDPClient {
   ddpClient.sessionId = ""
   ddpClient.pingSeconds = time.Second * 25
   ddpClient.pongWaitSeconds = time.Second * 5
+  ddpClient.sub_id = 0
   
   return &ddpClient
 }
@@ -44,11 +47,12 @@ func (ddpClient *DDPClient) connectSocket(host string, port string, path string)
   ddpClient.ws = conn
 }
 
-func (ddpClient *DDPClient) ConnectUsingSaneDefaults() {
+func (ddpClient *DDPClient) ConnectUsingSaneDefaults(readyChan chan bool) {
   var msg = &m_cConnect{"connect", "1", []string{"1","pre2","pre1"}}
   //connectMsg, _ := json.Marshal(msg)
   //fmt.Println("Connect message: ")
   //fmt.Printf("\nMarshalled data: %s\n", connectMsg)
+  ddpClient.readyChan = readyChan
   websocket.JSON.Send(ddpClient.ws, msg)
 }
 
@@ -65,8 +69,10 @@ func (ddpClient *DDPClient) Logout() {
 
 }
 
-func (ddpClient *DDPClient) Subscribe() {
-
+func (ddpClient *DDPClient) Subscribe(name string) {
+  var msg = &m_sSub{"sub", string(ddpClient.sub_id), name, []string{}}
+  ddpClient.sub_id = ddpClient.sub_id + 1
+  websocket.JSON.Send(ddpClient.ws, msg)
 }
 
 func (ddpClient *DDPClient) Unsubscribe() {
@@ -88,7 +94,7 @@ func (ddpClient *DDPClient) pingJob(pongChan chan bool) {
         pongChan := time.NewTimer(ddpClient.pongWaitSeconds).C
         select {
         case <- pongChan:
-            clientExit("I've waited enough for pong, exiting...")
+            ClientExit("I've waited enough for pong, exiting...")
         case <- pongChan:
             printMessage("received: " + "'pong'");
         }
@@ -129,8 +135,10 @@ func (ddpClient *DDPClient) ListenRead() {
           panic(err)
         }
         printMessage("Connected to ddp server with session: " + data.Session)
-        
         go ddpClient.pingJob(pongChan)
+        ddpClient.Subscribe("meteor.loginServiceConfiguration")
+        ddpClient.Subscribe("meteor_autoupdate_clientVersions")
+        ddpClient.readyChan <- true
       
       case strings.Contains(msg, "failed"):
         var data m_sFailed
@@ -154,12 +162,14 @@ func (ddpClient *DDPClient) ListenRead() {
         printMessage("received: " + "'nosub'");
       case strings.Contains(msg, "added"):
         printMessage("received: " + "'added'");
+        printMessage("Message received: " + msg)
       case strings.Contains(msg, "changed"):
         printMessage("received: " + "'changed'");
       case strings.Contains(msg, "removed"):
         printMessage("received: " + "'removed'");
       case strings.Contains(msg, "ready"):
         printMessage("received: " + "'ready'");
+        printMessage("Message received: " + msg)
       case strings.Contains(msg, "addedBefore"):
         printMessage("received: " + "'addedBefore'");
       case strings.Contains(msg, "movedBefore"):

@@ -4,8 +4,36 @@ import (
   "fmt"
   "bufio"
   "os"
+  "time"
   "ddp"
 )
+
+func application(ddpClient *ddp.DDPClient) {
+  fmt.Println("")
+  fmt.Println("-----------------")
+  fmt.Println("Hey, i am running")
+}
+
+func entryPoint(ddpClient *ddp.DDPClient, readyChan chan bool) {
+  
+  // Wait a second, to init
+  time.Sleep(time.Second)
+  
+  initTimer := time.NewTimer(time.Second * 10)
+  initializeTimerChan := initTimer.C
+  
+  for {
+    select {
+      case <- initializeTimerChan:
+        ddp.ClientExit("I've waited enough for initialization, exiting...")
+      case <- readyChan:
+        initTimer.Stop()
+        fmt.Println("Done init")
+        go application(ddpClient)
+    }
+  }
+
+}
 
 func main() {
 
@@ -18,7 +46,11 @@ func main() {
 
   ddpClient := ddp.NewDDPClient(os.Args[1], os.Args[2], os.Args[3]) 
   go ddpClient.ListenRead()
-  ddpClient.ConnectUsingSaneDefaults()
+  
+  readyChan := make(chan bool)
+  go entryPoint(ddpClient, readyChan)
+  
+  ddpClient.ConnectUsingSaneDefaults(readyChan)
 
   reader := bufio.NewReader(os.Stdin)
   text, _ := reader.ReadString('\n')

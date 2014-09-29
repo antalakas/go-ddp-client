@@ -11,6 +11,13 @@ type m_sConnected struct {
   Session  string    `json:"session"`
 }
 
+type m_sSub struct {
+  Msg      string    `json:"msg"`
+  Id       string    `json:"id"`
+  Name     string    `json:"name"`
+  Params   []string  `json:"params"`
+}
+
 type m_sFailed struct {
   Msg      string    `json:"msg"`
   Version  string    `json:"version"`
