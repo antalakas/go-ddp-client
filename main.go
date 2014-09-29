@@ -12,6 +12,8 @@ func application(ddpClient *ddp.DDPClient) {
   fmt.Println("")
   fmt.Println("-----------------")
   fmt.Println("Hey, i am running")
+  
+  ddpClient.Logout()
 }
 
 func entryPoint(ddpClient *ddp.DDPClient, readyChan chan bool) {
@@ -43,8 +45,9 @@ func main() {
   }
 
   fmt.Println("--> Hit any key to terminate <--")
-
-  ddpClient := ddp.NewDDPClient(os.Args[1], os.Args[2], os.Args[3]) 
+  
+  // last argument is used to enable login
+  ddpClient := ddp.NewDDPClient(os.Args[1], os.Args[2], os.Args[3], true) 
   go ddpClient.ListenRead()
   
   readyChan := make(chan bool)

@@ -3,6 +3,9 @@ package ddp
 import (
   "time"
   "strings"
+  "os"
+  "crypto/sha256"
+  "encoding/hex"
   "encoding/json"
   "code.google.com/p/go.net/websocket"
 )
@@ -18,10 +21,13 @@ type DDPClient struct {
   ws *websocket.Conn
   sub_id int
   readyChan chan bool
+  loginUser bool
+  enableLogin bool
 }
 
 // Create new chat client.
-func NewDDPClient(host string, port string, path string) *DDPClient {
+func NewDDPClient(host string, port string, 
+                  path string, enableLogin bool) *DDPClient {
   var ddpClient DDPClient
   ddpClient.connectSocket(host, port, path)
   
@@ -34,6 +40,8 @@ func NewDDPClient(host string, port string, path string) *DDPClient {
   ddpClient.pingSeconds = time.Second * 25
   ddpClient.pongWaitSeconds = time.Second * 5
   ddpClient.sub_id = 0
+  ddpClient.loginUser = true
+  ddpClient.enableLogin = enableLogin
   
   return &ddpClient
 }
@@ -49,9 +57,6 @@ func (ddpClient *DDPClient) connectSocket(host string, port string, path string)
 
 func (ddpClient *DDPClient) ConnectUsingSaneDefaults(readyChan chan bool) {
   var msg = &m_cConnect{"connect", "1", []string{"1","pre2","pre1"}}
-  //connectMsg, _ := json.Marshal(msg)
-  //fmt.Println("Connect message: ")
-  //fmt.Printf("\nMarshalled data: %s\n", connectMsg)
   ddpClient.readyChan = readyChan
   websocket.JSON.Send(ddpClient.ws, msg)
 }
@@ -61,12 +66,57 @@ func (ddpClient *DDPClient) Connect(version string, support []string) {
   websocket.JSON.Send(ddpClient.ws, msg)
 }
 
-func (ddpClient *DDPClient) Login() {
+func (ddpClient *DDPClient) LoginUser() {
+  
+  if (!ddpClient.loginUser) {
+    return;
+  }
+  
+  //printMessage("MY_USERNAME:" + os.Getenv("MY_USERNAME"))
+  //printMessage("MY_PASSWORD:" + os.Getenv("MY_PASSWORD"))
+  
+  hash := sha256.New()
+  hash.Write([]byte(os.Getenv("MY_PASSWORD")))
+  md := hash.Sum(nil)
+  mdStr := hex.EncodeToString(md)
+  //printMessage(mdStr)
 
+  var userMsg = m_Username{os.Getenv("MY_USERNAME")}
+  var passMsg = m_Password{mdStr, "sha-256"}
+  var credMsg = m_UserCredentials{userMsg, passMsg}
+  var loginMsg = &m_cUserLogin{"method", "login", 
+                               []m_UserCredentials {credMsg}, "2"}
+  
+  //loginMsgStr, _ := json.Marshal(loginMsg)
+  //printMessage("Login message: ")
+  //fmt.Printf("\nMarshalled data: %s\n", loginMsgStr)
+  
+  websocket.JSON.Send(ddpClient.ws, loginMsg)
+}
+
+func (ddpClient *DDPClient) LoginEmail() {
+  
+  if (ddpClient.loginUser) {
+    return;
+  }
+  
+  hash := sha256.New()
+  hash.Write([]byte(os.Getenv("MY_PASSWORD")))
+  md := hash.Sum(nil)
+  mdStr := hex.EncodeToString(md)
+
+  var emailMsg = m_Email{os.Getenv("MY_EMAIL")}
+  var passMsg = m_Password{mdStr, "sha-256"}
+  var credMsg = m_EmailCredentials{emailMsg, passMsg}
+  var loginMsg = &m_cEmailLogin{"method", "login", 
+                               []m_EmailCredentials {credMsg}, "2"}
+  
+  websocket.JSON.Send(ddpClient.ws, loginMsg)
 }
 
 func (ddpClient *DDPClient) Logout() {
-
+  var logoutMsg = &m_cLogout{"method", "logout", []string{}, "2"}
+  websocket.JSON.Send(ddpClient.ws, logoutMsg)
 }
 
 func (ddpClient *DDPClient) Subscribe(name string) {
@@ -136,6 +186,11 @@ func (ddpClient *DDPClient) ListenRead() {
         }
         printMessage("Connected to ddp server with session: " + data.Session)
         go ddpClient.pingJob(pongChan)
+      
+        if (ddpClient.enableLogin) {
+          ddpClient.LoginUser()    
+        }
+      
         ddpClient.Subscribe("meteor.loginServiceConfiguration")
         ddpClient.Subscribe("meteor_autoupdate_clientVersions")
         ddpClient.readyChan <- true
