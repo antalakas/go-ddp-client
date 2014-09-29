@@ -9,10 +9,10 @@ This work is in early development and is not ready for production.
 1. Create a run.sh file next to main.go
 2. chmod +x run.sh
 3. Fill it it with following:
-  export GOPATH=$GOPATH:~/path/go-ddp-client
-  export MY_USERNAME='username'
-  export MY_PASSWORD='password'
-  go run main.go http://mysite.com 3000 websocket
+    export GOPATH=$GOPATH:~/path/go-ddp-client
+    export MY_USERNAME='username'
+    export MY_PASSWORD='password'
+    go run main.go http://mysite.com 3000 websocket
    
 ####What works
 
