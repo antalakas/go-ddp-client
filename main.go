@@ -22,11 +22,11 @@ func entryPoint(ddpClient *ddp.DDPClient, readyChan chan bool) {
   time.Sleep(time.Second)
   
   initTimer := time.NewTimer(time.Second * 10)
-  initializeTimerChan := initTimer.C
+  initTimerChan := initTimer.C
   
   for {
     select {
-      case <- initializeTimerChan:
+      case <- initTimerChan:
         ddp.ClientExit("I've waited enough for initialization, exiting...")
       case <- readyChan:
         initTimer.Stop()

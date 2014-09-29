@@ -140,12 +140,15 @@ func (ddpClient *DDPClient) pingJob(pongChan chan bool) {
   for {
     select {
       case <- pingTicker:
+        printMessage("sending ping")
         ddpClient.sendSimpleMessage("ping")
-        pongChan := time.NewTimer(ddpClient.pongWaitSeconds).C
+        pongTimer := time.NewTimer(ddpClient.pongWaitSeconds)
+        pongTimerChan := pongTimer.C
         select {
-        case <- pongChan:
+          case <- pongTimerChan:
             ClientExit("I've waited enough for pong, exiting...")
-        case <- pongChan:
+          case <- pongChan:
+            pongTimer.Stop()
             printMessage("received: " + "'pong'");
         }
     }
