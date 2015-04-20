@@ -1,22 +1,22 @@
 package ddp
 
 import (
-  "fmt"
-  "os"
+	"fmt"
+	"os"
 )
 
 func checkError(message string, err error) {
-  if err != nil {
-    fmt.Println("Fatal error in", message, ": " + err.Error())
-    os.Exit(1)
-  }
+	if err != nil {
+		fmt.Println("Fatal error in", message, ": "+err.Error())
+		os.Exit(1)
+	}
 }
 
 func printMessage(message string) {
-  fmt.Println(message)
+	fmt.Println(message)
 }
 
 func ClientExit(message string) {
-  printMessage(message)
-  os.Exit(1)
+	printMessage(message)
+	os.Exit(1)
 }
