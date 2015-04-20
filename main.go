@@ -24,7 +24,7 @@ type DDPClient struct {
 	readyChan       chan bool
 	loginUser       bool
 	enableLogin     bool
-	callbacks       map[int]interface{}
+	callbacks       map[string]interface{}
 }
 
 // Create new chat client.
@@ -45,7 +45,7 @@ func NewDDPClient(host string, port string,
 	ddpClient.next_id = 0
 	ddpClient.loginUser = true
 	ddpClient.enableLogin = enableLogin
-
+	ddpClient.callbacks = make(map[string]interface{})
 	return &ddpClient
 }
 
@@ -64,7 +64,7 @@ func (ddpClient *DDPClient) connectSocket(host string, port string, path string)
 }
 
 func (ddpClient *DDPClient) ConnectUsingSaneDefaults(readyChan chan bool) {
-	var msg = &m_cConnect{"connect", "1", []string{"1", "pre2", "pre1"}}
+	var msg = &m_cConnect{"connect", "pre1", []string{"1", "pre2", "pre1"}}
 	ddpClient.readyChan = readyChan
 	websocket.JSON.Send(ddpClient.ws, msg)
 }
@@ -141,8 +141,8 @@ func (ddpClient *DDPClient) sendSimpleMessage(msg string) {
 	websocket.JSON.Send(ddpClient.ws, &m_SimpleMessage{msg})
 }
 
-func (ddpClient *DDPClient) CallMethod(method string, params []string, callback interface{}) {
-	id := ddpClient.NextId()
+func (ddpClient *DDPClient) CallMethod(method string, params []interface{}, callback interface{}) {
+	id := string(ddpClient.NextId())
 	ddpClient.callbacks[id] = callback
 	websocket.JSON.Send(ddpClient.ws, &m_RPC{"method", method, params, id})
 }
@@ -255,10 +255,8 @@ func (ddpClient *DDPClient) ListenRead() {
 			if err := json.Unmarshal([]byte(msg), &data); err != nil {
 				panic(err)
 			}
-			id := strconv.ParseInt(data.Id)
-			ddpClient.callbacks[id](data.Error, data.Result)
-			delete(ddpClient.callbacks, id)
-			printMessage(data.Msg + ", server requires version: " + data.Version)
+			ddpClient.callbacks[data.Id].(func(interface{}, interface{}))(data.Error, data.Result)
+			delete(ddpClient.callbacks, data.Id)
 		case strings.Contains(msg, "updated"):
 			printMessage("received: " + "'updated'")
 			// <- Remote Procedure Calls
