@@ -20,6 +20,7 @@ type DDPClient struct {
 	pongWaitSeconds time.Duration
 	ws              *websocket.Conn
 	sub_id          int
+	next_id         int
 	readyChan       chan bool
 	loginUser       bool
 	enableLogin     bool
@@ -40,10 +41,16 @@ func NewDDPClient(host string, port string,
 	ddpClient.pingSeconds = time.Second * 25
 	ddpClient.pongWaitSeconds = time.Second * 5
 	ddpClient.sub_id = 0
+	ddpClient.next_id = 0
 	ddpClient.loginUser = true
 	ddpClient.enableLogin = enableLogin
 
 	return &ddpClient
+}
+
+func (ddpClient *DDPClient) NextId() int {
+	ddpClient.next_id = ddpClient.next_id + 1
+	return ddpClient.next_id
 }
 
 func (ddpClient *DDPClient) connectSocket(host string, port string, path string) {
@@ -131,6 +138,11 @@ func (ddpClient *DDPClient) Unsubscribe() {
 
 func (ddpClient *DDPClient) sendSimpleMessage(msg string) {
 	websocket.JSON.Send(ddpClient.ws, &m_SimpleMessage{msg})
+}
+
+func (ddpClient *DDPClient) CallMethod(method string, params []string) {
+	id := ddpClient.NextId()
+	websocket.JSON.Send(ddpClient.ws, &m_RPC{"method", method, params, id})
 }
 
 func (ddpClient *DDPClient) pingJob(pongChan chan bool) {

@@ -74,3 +74,10 @@ type m_cLogout struct {
 	Params []string `json:"params"`
 	Id     string   `json:"id"`
 }
+
+type m_RPC struct {
+	Msg    string   `json:"msg"`
+	Method string   `json:"method"`
+	Params []string `json:"params"`
+	Id     string   `json:"id"`
+}
