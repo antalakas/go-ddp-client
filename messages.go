@@ -76,8 +76,14 @@ type m_cLogout struct {
 }
 
 type m_RPC struct {
-	Msg    string   `json:"msg"`
-	Method string   `json:"method"`
-	Params []string `json:"params"`
-	Id     string   `json:"id"`
+	Msg    string        `json:"msg"`
+	Method string        `json:"method"`
+	Params []interface{} `json:"params"`
+	Id     string        `json:"id"`
+}
+
+type m_RPCResult struct {
+	Id     string `json:"id"`
+	Error  interface{}
+	Result interface{}
 }
